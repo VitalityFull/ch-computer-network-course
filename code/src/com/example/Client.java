@@ -6,6 +6,7 @@ import java.awt.event.ActionListener;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 
 public class Client {
     private String username;
@@ -154,23 +155,27 @@ public class Client {
                 //建立连接
                 try {
                     Socket socket = new Socket("127.0.0.1", 12000);
+                    OutputStream outputStream = socket.getOutputStream();
                     //传输基本信息
-                    BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+                    BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_16));
                     writer.write(username + "\n");
                     writer.write("sendFile\n");
                     writer.write(username2 + "\n");
                     writer.write(file.getName() + "\n");
+                    writer.flush();
                     System.out.println(file.getName());
                     //传输文件
-                    FileReader fr = new FileReader(file);
-                    int len;
-                    char[] arr = new char[30];
+                    FileInputStream fr = new FileInputStream(file);
+                    int len,sum=0;
+                    byte[] arr = new byte[1024];
                     while ((len = fr.read(arr)) != -1) {
-                        writer.write(arr, 0, len);
+                        outputStream.write(arr, 0, len);
+                        sum+=len;
                     }
+                    System.out.println(sum);
                     //释放资源
                     fr.close();
-                    writer.close();
+                    outputStream.close();
                 } catch (IOException ex) {
                     throw new RuntimeException(ex);
                 }

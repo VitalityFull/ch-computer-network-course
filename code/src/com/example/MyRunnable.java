@@ -2,6 +2,7 @@ package com.example;
 
 import java.io.*;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 
@@ -19,19 +20,20 @@ public class MyRunnable implements Runnable {
     @Override
     public void run() {
         try {
-            System.out.println("连接成功");
-            BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            InputStream inputStream = socket.getInputStream();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_16));
             //获取连接者
             String name = reader.readLine();
             //判断连接类型
             String flag = reader.readLine();
+            System.out.println(flag);
 
             if (flag.equals("sendTxt")) {
                 txtSend(socket, reader, name);
             } else if (flag.equals("acceptTxt")) {
                 txtAccept(socket, name);
             } else if (flag.equals("sendFile")) {
-                fileSend(socket, reader, name);
+                fileSend(socket, inputStream,reader, name);
             } else {
                 fileAccept(socket, name);
             }
@@ -81,27 +83,30 @@ public class MyRunnable implements Runnable {
     }
 
     //处理文件发送
-    public void fileSend(Socket socket, BufferedReader reader, String name) throws IOException {
+    public void fileSend(Socket socket,InputStream inputStream, BufferedReader reader, String name) throws IOException {
         System.out.println("sendFile");
         //获取接受者
         String receiver = reader.readLine();
         //获取文件名
         String filename = reader.readLine();
         //写入本地
-        FileWriter fw = new FileWriter("code\\Data\\server\\" + receiver + "\\" + "by-" + name + "-" + filename);
+        FileOutputStream fw = new FileOutputStream("code\\Data\\server\\" + receiver + "\\" + "by-" + name + "-" + filename);
         //记录路径
         String filePath = "code\\Data\\server\\" + receiver + "\\" + "by-" + name + "-" + filename;
         System.out.println(filePath);
         //记录
         list.add(new UserFile(receiver, filePath));
-        int len;
-        char[] arr = new char[30];
-        while ((len = reader.read(arr)) != -1) {
+        int len,sum=0;
+        byte[] arr = new byte[1024];
+
+        while ((len = inputStream.read(arr)) != -1) {
             fw.write(arr, 0, len);
+            sum+=len;
         }
+        System.out.println(sum);
         //释放资源
         fw.close();
-        reader.close();
+        inputStream.close();
     }
 
     //处理接受Txt
