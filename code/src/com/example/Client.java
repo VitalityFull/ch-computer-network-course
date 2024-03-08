@@ -6,7 +6,6 @@ import java.awt.event.ActionListener;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 
 public class Client {
     private String username;
@@ -70,29 +69,31 @@ public class Client {
                 try {
                     //连接服务器
                     Socket socket = new Socket("127.0.0.1", 12000);
-                    BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-                    writer.write(username + "\n");
-                    writer.write("acceptFile\n");
+                    OutputStream outputStream = socket.getOutputStream();
+                    outputStream.write(getByte(username));
+                    outputStream.write(getByte("acceptFile"));
                     //清空缓存
-                    writer.flush();
+                    outputStream.flush();
                     //获取输入流
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                    InputStream inputStream = socket.getInputStream();
+                    byte[] arr30 = new byte[30];
+                    inputStream.read(arr30);
                     //获取文件名(这里用_起名是因为文件路径也用的fileName)
-                    String file_Name = reader.readLine();
-                    System.out.println(fileName.getText()+"\\"+file_Name);
+                    String file_Name = getString(arr30);
+                    System.out.println(fileName.getText() + "\\" + file_Name);
                     //获取存储路径
-                    FileWriter fw = new FileWriter(fileName.getText()+"\\"+file_Name);
+                    FileOutputStream fw = new FileOutputStream(fileName.getText() + "\\" + file_Name);
                     //接收数据
                     int len;
-                    char[] arr = new char[30];
-                    while ((len = reader.read(arr)) != -1) {
+                    byte[] arr = new byte[30];
+                    while ((len = inputStream.read(arr)) != -1) {
                         fw.write(arr, 0, len);
                     }
                     System.out.println("接收完毕---");
                     //释放资源
                     fw.close();
-                    reader.close();
-                    writer.close();
+                    inputStream.close();
+                    outputStream.close();
                     socket.close();
                 } catch (IOException ex) {
                     throw new RuntimeException(ex);
@@ -157,20 +158,19 @@ public class Client {
                     Socket socket = new Socket("127.0.0.1", 12000);
                     OutputStream outputStream = socket.getOutputStream();
                     //传输基本信息
-                    BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_16));
-                    writer.write(username + "\n");
-                    writer.write("sendFile\n");
-                    writer.write(username2 + "\n");
-                    writer.write(file.getName() + "\n");
-                    writer.flush();
+                    outputStream.write(getByte(username));
+                    outputStream.write(getByte("sendFile"));
+                    outputStream.write(getByte(username2));
+                    outputStream.write(getByte(file.getName()));
+                    outputStream.flush();
                     System.out.println(file.getName());
                     //传输文件
                     FileInputStream fr = new FileInputStream(file);
-                    int len,sum=0;
+                    int len, sum = 0;
                     byte[] arr = new byte[1024];
                     while ((len = fr.read(arr)) != -1) {
                         outputStream.write(arr, 0, len);
-                        sum+=len;
+                        sum += len;
                     }
                     System.out.println(sum);
                     //释放资源
@@ -182,6 +182,25 @@ public class Client {
             }
         });
         jFrame.getContentPane().add(send);
+    }
+
+    //获取字节数组
+    public byte[] getByte(String str) {
+        byte[] arr = new byte[30];
+        int len = str.length();
+        for (int i = 0; i < len; i++) {
+            arr[i] = (byte) str.charAt(i);
+        }
+        for (int i = len; i < arr.length; i++) {
+            arr[i] =(byte) ' ';
+        }
+        return arr;
+    }
+
+    //从字节数组中获取字符串
+    public String getString(byte[] arr) {
+        String str = new String(arr);
+        return str.trim();
     }
 
     //文本显示框
@@ -213,10 +232,12 @@ public class Client {
             public void actionPerformed(ActionEvent e) {
                 try {
                     Socket socket = new Socket("127.0.0.1", 12000);
-                    BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-                    writer.write(username + "\n");
-                    writer.write("acceptTxt\n");
-                    writer.flush();
+                    OutputStream outputStream = socket.getOutputStream();
+                    //发生必要字段信息
+                    outputStream.write(getByte(username));
+                    outputStream.write(getByte("acceptTxt"));
+                    outputStream.flush();
+
                     BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                     FileWriter fw = new FileWriter("code\\Data\\user\\" + username + "\\" + username + ".txt", true);
                     //接收数据
@@ -227,7 +248,7 @@ public class Client {
                         fw.write(arr, 0, len);
                         flag++;
                     }
-                    writer.close();
+                    System.out.println("接收成功");
                     fw.close();
                     reader.close();
                     socket.close();
@@ -282,9 +303,12 @@ public class Client {
                 String data = txtData.getText();
                 try {
                     Socket socket = new Socket("127.0.0.1", 12000);
+                    OutputStream outputStream = socket.getOutputStream();
+
+                    outputStream.write(getByte(username));
+                    outputStream.write(getByte("sendTxt"));
+                    outputStream.flush();
                     BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-                    writer.write(username + "\n");
-                    writer.write("sendTxt\n");
                     writer.write(username2 + "\n");
                     writer.write(data);
                     writer.close();
@@ -308,4 +332,5 @@ public class Client {
         //取消JLabel居中放置
         jFrame.setLayout(null);
     }
+
 }
