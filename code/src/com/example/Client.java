@@ -238,15 +238,14 @@ public class Client {
                     outputStream.write(getByte("acceptTxt"));
                     outputStream.flush();
 
+                    //接收文本数据
                     BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                     FileWriter fw = new FileWriter("code\\Data\\user\\" + username + "\\" + username + ".txt", true);
                     //接收数据
                     int len;
-                    int flag = 0;
                     char[] arr = new char[30];
                     while ((len = reader.read(arr)) != -1) {
                         fw.write(arr, 0, len);
-                        flag++;
                     }
                     System.out.println("接收成功");
                     fw.close();

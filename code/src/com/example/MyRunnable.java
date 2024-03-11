@@ -8,6 +8,15 @@ import java.util.ArrayList;
 
 
 public class MyRunnable implements Runnable {
+
+    static ArrayList<User> users = new ArrayList<>();
+
+    static {
+        users.add(new User("chen", "123"));
+        users.add(new User("zhang", "123"));
+        users.add(new User("liu", "123"));
+    }
+
     private Socket socket;
 
     private ArrayList<UserFile> list;
@@ -65,6 +74,8 @@ public class MyRunnable implements Runnable {
             System.out.println("没有需要接收的文件");
             outputStream.close();
             socket.close();
+            new MyJDialog("没有需要接收的文件");
+            return;
         }
         //获取文件对象
         File file = new File(filePath);
@@ -78,6 +89,7 @@ public class MyRunnable implements Runnable {
         while ((len = fr.read(arr)) != -1) {
             outputStream.write(arr, 0, len);
         }
+        new MyJDialog("成功接收文件！");
         //释放资源
         fr.close();
         outputStream.close();
@@ -85,7 +97,7 @@ public class MyRunnable implements Runnable {
     }
 
     //处理文件发送
-    public void fileSend( InputStream inputStream, String name) throws IOException {
+    public void fileSend(InputStream inputStream, String name) throws IOException {
         System.out.println("sendFile");
         byte[] arr30 = new byte[30];
         inputStream.read(arr30);
@@ -94,23 +106,49 @@ public class MyRunnable implements Runnable {
         //获取文件名
         inputStream.read(arr30);
         String filename = getString(arr30);
-        //写入本地
-        FileOutputStream fw = new FileOutputStream("code\\Data\\server\\" + receiver + "\\" + "by-" + name + "-" + filename);
-        //记录路径
-        String filePath = "code\\Data\\server\\" + receiver + "\\" + "by-" + name + "-" + filename;
-        System.out.println(filePath);
-        //记录
-        list.add(new UserFile(receiver, filePath));
-        int len, sum = 0;
-        byte[] arr = new byte[1024];
+        if (receiver.equals("all")) {
+            //写入本地
+            FileOutputStream fw = new FileOutputStream("code\\Data\\server\\" + receiver + "\\" + "by-" + name + "-" + filename);
+            //记录路径
+            String filePath = "code\\Data\\server\\" + receiver + "\\" + "by-" + name + "-" + filename;
+            System.out.println(filePath);
+            //记录
+            for (int i = 0; i < users.size(); i++) {
+                if (users.get(i).getUsername().equals(name))
+                    continue;
+                list.add(new UserFile(users.get(i).getUsername(), filePath));
+            }
+            //接收
+            int len, sum = 0;
+            byte[] arr = new byte[1024];
 
-        while ((len = inputStream.read(arr)) != -1) {
-            fw.write(arr, 0, len);
-            sum += len;
+            while ((len = inputStream.read(arr)) != -1) {
+                fw.write(arr, 0, len);
+                sum += len;
+            }
+            System.out.println(sum);
+            //释放资源
+            fw.close();
+        } else {
+            //写入本地
+            FileOutputStream fw = new FileOutputStream("code\\Data\\server\\" + receiver + "\\" + "by-" + name + "-" + filename);
+            //记录路径
+            String filePath = "code\\Data\\server\\" + receiver + "\\" + "by-" + name + "-" + filename;
+            System.out.println(filePath);
+            //记录
+            list.add(new UserFile(receiver, filePath));
+            int len, sum = 0;
+            byte[] arr = new byte[1024];
+
+            while ((len = inputStream.read(arr)) != -1) {
+                fw.write(arr, 0, len);
+                sum += len;
+            }
+            System.out.println(sum);
+            //释放资源
+            fw.close();
         }
-        System.out.println(sum);
         //释放资源
-        fw.close();
         inputStream.close();
     }
 
@@ -139,20 +177,58 @@ public class MyRunnable implements Runnable {
         BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
         String receiver = reader.readLine();
         System.out.println("发送给" + receiver);
-        //写入本地
-        FileWriter fw = new FileWriter("code\\Data\\server\\" + receiver + "\\" + receiver + ".txt");
-        fw.write(name + "(" + LocalDateTime.now() + ")" + ":\n");
-        int len;
-        char[] arr = new char[30];
-        while ((len = reader.read(arr)) != -1) {
-            fw.write(arr, 0, len);
+
+        //判断是否是群发
+        if (receiver.equals("all")) {
+            FileWriter fw = new FileWriter("code\\Data\\server\\" + receiver + ".txt", true);
+            fw.write(name + "(" + LocalDateTime.now() + ")" + ":\n");
+
+            int len;
+            char[] arr = new char[30];
+            while ((len = reader.read(arr)) != -1) {
+                fw.write(arr, 0, len);
+            }
+            fw.write("\n");
+            fw.close();
+            reader.close();
+
+            //循环发生给其他用户
+
+            for (int i = 0; i < users.size(); i++) {
+                if (users.get(i).getUsername().equals(name))
+                    continue;
+                FileReader fr = new FileReader("code\\Data\\server\\" + receiver + ".txt");
+                FileWriter fw1 = new FileWriter("code\\Data\\server\\" + users.get(i).getUsername() + "\\" + users.get(i).getUsername() + ".txt", true);
+
+                while ((len = fr.read(arr)) != -1) {
+                    fw1.write(arr, 0, len);
+                }
+                fw1.close();
+                fr.close();
+            }
+            //清空数据
+            FileWriter fw2 = new FileWriter("code\\Data\\server\\" + receiver + ".txt");
+            //释放资源
+            fw2.close();
+        } else {
+            //单发
+            //写入本地
+            FileWriter fw = new FileWriter("code\\Data\\server\\" + receiver + "\\" + receiver + ".txt", true);
+            fw.write(name + "(" + LocalDateTime.now() + ")" + ":\n");
+            int len;
+            char[] arr = new char[30];
+            while ((len = reader.read(arr)) != -1) {
+                fw.write(arr, 0, len);
+            }
+            fw.write("\n");
+            //释放资源
+            fw.close();
         }
-        fw.write("\n");
-        //释放资源
-        fw.close();
         reader.close();
         System.out.println("发送成功");
     }
+
+    //获取字符串的字节数组
     public byte[] getByte(String str) {
         byte[] arr = new byte[30];
         int len = str.length();
@@ -160,10 +236,12 @@ public class MyRunnable implements Runnable {
             arr[i] = (byte) str.charAt(i);
         }
         for (int i = len; i < arr.length; i++) {
-            arr[i] =(byte) ' ';
+            arr[i] = (byte) ' ';
         }
         return arr;
     }
+
+    //将字节数组转换成字符串
     public String getString(byte[] arr) {
         String str = new String(arr);
         return str.trim();
