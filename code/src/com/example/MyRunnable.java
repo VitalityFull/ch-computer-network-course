@@ -17,7 +17,7 @@ public class MyRunnable implements Runnable {
         users.add(new User("liu", "123"));
     }
 
-    private Socket socket;
+    private final Socket socket;
 
     private ArrayList<UserFile> list;
 
@@ -39,14 +39,11 @@ public class MyRunnable implements Runnable {
             //判断连接类型
             String flag = getString(arr);
             System.out.println(flag);
-            if (flag.equals("sendTxt")) {
-                txtSend(inputStream, name);
-            } else if (flag.equals("acceptTxt")) {
-                txtAccept(socket, name);
-            } else if (flag.equals("sendFile")) {
-                fileSend(inputStream, name);
-            } else {
-                fileAccept(socket, name);
+            switch (flag) {
+                case "sendTxt" -> txtSend(inputStream, name);
+                case "acceptTxt" -> txtAccept(socket, name);
+                case "sendFile" -> fileSend(inputStream, name);
+                default -> fileAccept(socket, name);
             }
             socket.close();
         } catch (IOException e) {
@@ -55,10 +52,9 @@ public class MyRunnable implements Runnable {
     }
 
     public String getFilePath(String name) {
-        int len = list.size();
-        for (int i = 0; i < len; i++) {
-            if (list.get(i).getName().equals(name)) {
-                return list.get(i).getFilePath();
+        for (UserFile userFile : list) {
+            if (userFile.getName().equals(name)) {
+                return userFile.getFilePath();
             }
         }
         return null;
@@ -113,10 +109,10 @@ public class MyRunnable implements Runnable {
             String filePath = "code\\Data\\server\\" + receiver + "\\" + "by-" + name + "-" + filename;
             System.out.println(filePath);
             //记录
-            for (int i = 0; i < users.size(); i++) {
-                if (users.get(i).getUsername().equals(name))
+            for (User user : users) {
+                if (user.getUsername().equals(name))
                     continue;
-                list.add(new UserFile(users.get(i).getUsername(), filePath));
+                list.add(new UserFile(user.getUsername(), filePath));
             }
             //接收
             int len, sum = 0;
@@ -194,11 +190,11 @@ public class MyRunnable implements Runnable {
 
             //循环发生给其他用户
 
-            for (int i = 0; i < users.size(); i++) {
-                if (users.get(i).getUsername().equals(name))
+            for (User user : users) {
+                if (user.getUsername().equals(name))
                     continue;
                 FileReader fr = new FileReader("code\\Data\\server\\" + receiver + ".txt");
-                FileWriter fw1 = new FileWriter("code\\Data\\server\\" + users.get(i).getUsername() + "\\" + users.get(i).getUsername() + ".txt", true);
+                FileWriter fw1 = new FileWriter("code\\Data\\server\\" + user.getUsername() + "\\" + user.getUsername() + ".txt", true);
 
                 while ((len = fr.read(arr)) != -1) {
                     fw1.write(arr, 0, len);
