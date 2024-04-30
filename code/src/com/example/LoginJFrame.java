@@ -8,6 +8,7 @@ import java.util.ArrayList;
 public class LoginJFrame extends JFrame {
     static ArrayList<User> users = new ArrayList<>();
 
+    //预存的用户名和密码
     static {
         users.add(new User("chen", "123"));
         users.add(new User("zhang", "123"));
